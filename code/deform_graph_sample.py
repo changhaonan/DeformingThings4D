@@ -177,8 +177,8 @@ if __name__ == "__main__":
 
     # Visualize: Generate node-graph visualization / the python interface for Easy3DViewer
     # Test visualization
-    from visualization.graph_visualizer import *
-    from visualization.context import *
+    from easy3d_viewer.graph_visualizer import *
+    from easy3d_viewer.context import *
 
     context = Context()
     context.setDir("code/data", dir_prefix="frame_")
