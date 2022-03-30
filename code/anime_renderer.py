@@ -1,19 +1,21 @@
-import bpy
-import bmesh
+import bpy  # Tools provided by blender
+import bmesh  # Tools provided by blender
 import os
 import numpy as np
-import mathutils
+import mathutils  # Tools provided by blender
 import cv2
 import sys
 import time
-from mathutils import Matrix, Vector, Quaternion, Euler
-from mathutils.bvhtree import BVHTree
+from mathutils import Matrix, Vector, Quaternion, Euler  # Tools provided by blender
+from mathutils.bvhtree import BVHTree  # Tools provided by blender
 
 
-D=bpy.data
-C=bpy.context
+# Load environment
+D = bpy.data
+C = bpy.context
 pi = 3.14
 
+# Connect the matrix thing
 def opencv_to_blender(T):
     """T: ndarray 4x4
        usecase: cam.matrix_world =  world_to_blender( np.array(cam.matrix_world))
@@ -22,16 +24,16 @@ def opencv_to_blender(T):
         (0, -1, 0, 0),
         (0, 0, -1, 0),
         (0, 0,  0, 1)))
-    return np.matmul(T,origin) #T * origin
+    return np.matmul(T, origin) #T * origin
 
 def blender_to_opencv(T):
     transform = np.array(((1, 0, 0, 0),
               (0, -1, 0, 0),
               (0, 0, -1, 0),
               (0, 0, 0, 1)))
-    return np.matmul(T,transform)#T * transform
+    return np.matmul(T, transform)  #T * transform
 
-
+# Change the camera settings: perception angle, camera pixel
 def set_camera( bpy_cam,  angle=pi / 3, W=600, H=500):
     """TODO: replace with setting by intrinsics """
     bpy_cam.angle = angle
@@ -39,6 +41,7 @@ def set_camera( bpy_cam,  angle=pi / 3, W=600, H=500):
     bpy_scene.render.resolution_x = W
     bpy_scene.render.resolution_y = H
 
+# Viewing angle tracking
 def look_at(obj_camera, point):
     loc_camera = obj_camera.matrix_world.to_translation()
     direction = point - loc_camera
@@ -47,6 +50,7 @@ def look_at(obj_camera, point):
     # assume we're using euler rotation
     obj_camera.rotation_euler = rot_quat.to_euler()
 
+# Camera projection matrix: (fx, fy, cx, cy); I also finished that previously
 def get_calibration_matrix_K_from_blender(camd):
     '''
     refer to: https://blender.stackexchange.com/questions/15102/what-is-blenders-camera-projection-matrix-model
@@ -80,7 +84,8 @@ def get_calibration_matrix_K_from_blender(camd):
     return K
 
 
-def anime_read( filename):
+# Reading binary data
+def anime_read(filename):
     """
     filename: path of .anime file
     return:
@@ -113,7 +118,7 @@ class AnimeRenderer:
         _, _, _, vert_data, face_data, offset_data = \
             anime_read(anime_file)
         offset_data = np.concatenate ( [ np.zeros( (1, offset_data.shape[1], offset_data.shape[2]) ), offset_data], axis=0)
-        '''make object mesh'''
+        '''make object mesh: construct the mesh obj'''
         vertices = vert_data.tolist()
         edges = []
         faces = face_data.tolist()
@@ -134,19 +139,20 @@ class AnimeRenderer:
     def vis_frame(self, fid):
         '''update geometry to a frame (for debug)'''
         src_offset = self.offset_data[fid]
-        bm = bmesh.new()
+        bm = bmesh.new()  # Control junction
         bm.from_mesh(self.the_mesh.data)
         bm.verts.ensure_lookup_table()
         bm.faces.ensure_lookup_table()
         for i in range(len(bm.verts)):
             bm.verts[i].co = Vector(self.vert_data[i] + src_offset[i])
-        bm.to_mesh(self.the_mesh.data)
+        bm.to_mesh(self.the_mesh.data)  # Mesh data updated
         bm.free()
 
-
+    # Generate depth & scene-flow
     def depthflowgen(self, flow_skip=1, render_sflow=True ):
         num_frame = self.offset_data.shape[0]
         camera = D.objects["Camera"]
+        # Parse directory
         depth_dir = os.path.join( self.dum_path, "depth")
         if not os.path.exists(depth_dir):
             os.makedirs(depth_dir)
@@ -230,17 +236,17 @@ class AnimeRenderer:
             # but since ray_cast return the faceID, this code is more flexible to use, e.g. generating model2frame dense correspondences)
             raycast_mesh = self.the_mesh
             ray_begin_local = raycast_mesh.matrix_world.inverted() @ Vector(ray_origin[0])
-            depsgraph=bpy.context.evaluated_depsgraph_get()
+            depsgraph = bpy.context.evaluated_depsgraph_get()
             bvhtree = BVHTree.FromObject(raycast_mesh, depsgraph)
             pcl = np.zeros_like(ray_direction)
             sflow = np.zeros_like(ray_direction)
             for i in range(ray_direction.shape[0]):
                 # start = time.time()
                 # hit, position, norm, faceID = raycast_mesh.ray_cast(ray_begin_local, Vector(ray_direction[i]), distance=60)
-                position, norm, faceID, _ =bvhtree.ray_cast(ray_begin_local, Vector(ray_direction[i]), 50)
+                position, norm, faceID, _ = bvhtree.ray_cast(ray_begin_local, Vector(ray_direction[i]), 50)
                 # end = time.time()
                 if position: # hit a triangle
-                    pcl[i]= Matrix(cam_opencv).inverted() @ raycast_mesh.matrix_world @ position
+                    pcl[i]= Matrix(cam_opencv).inverted() @ raycast_mesh.matrix_world @ position  # @ is matrix multiplication
                     if render_sflow and flow_exist:
                         face = bm.faces[faceID]
                         vert_index = [ v.index for v in face.verts]
@@ -294,7 +300,3 @@ if __name__ == '__main__':
 
     renderer = AnimeRenderer(anime_file, dump_path)
     renderer.depthflowgen(flow_skip=flow_skip)
-
-
-
-

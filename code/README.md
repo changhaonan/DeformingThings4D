@@ -1,17 +1,19 @@
-### DeformingThings4D toolkit
+DeformingThings4D toolkit
 
 The toolkit to generate depth and scene flow from a .anime file
-This script is tested on Ubuntu16+ with Blender 2.82. Install [Blender] first.
-
-[Blender]: https://www.blender.org/download/releases/2-82/
+This script is tested on Ubuntu16+ with Blender 2.82. Install [Blender][Blender] first.
 
 ### Data Generation
+
 Run the code to generate scene flow from the example.anime file with frame-skip set to 4.
-modify camera viewpoint in anime_renderer.py. 
+modify camera viewpoint in anime_renderer.py.
+
 ```shell
 blender  --background  --python anime_renderer.py -- ./example.anime ./example 4
 ```
+
 The generate folder structure is as the following:
+
 ```text
 |--example 
     |--cam_extr.txt  # 4x4 extrinsics
@@ -24,12 +26,15 @@ The generate folder structure is as the following:
 ```
 
 ### Visualize the data
-To visualize the generated pointcloud & sceneflow, install [Mayavi] first and then modify/run the code
+
+To visualize the generated pointcloud & sceneflow, install [Mayavi][Mayavi] first and then modify/run the code
+
 ```shell
 python parse_flow.py
 ```
 
-[mayavi]:https://docs.enthought.com/mayavi/mayavi/installation.html
-
 *Left: point cloud from source and target frame, Right: inter-frame scene flow (subsampled)*
 ![Alt text](example_vis.jpg)
+
+[Blender]: https://www.blender.org/download/releases/2-82/
+[mayavi]: https://docs.enthought.com/mayavi/mayavi/installation.html

@@ -1,0 +1,9 @@
+# Editor
+.vscode
+
+# Data
+code/data
+code/example
+
+# Visualization
+code/visualization
